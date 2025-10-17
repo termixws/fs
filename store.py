@@ -13,8 +13,8 @@ class Product(BaseModel):
 
 @app.post("/products")
 def add_products(product: Product):
-    for p in products:
-        if p.id == product.id:
+    for product in products:
+        if product.id == product.id:
             return {"error" : "product with this id already exists"}
     products.append(product)
     return product
