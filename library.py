@@ -15,8 +15,8 @@ class Book(BaseModel):
 
 @app.post("/books")
 def add_book(book: Book):
-    for b in books:
-        if b.id == book.id:
+    for book in books:
+        if book.id == book.id:
             return {"error" : "this book already exists"}
     books.append(book)
     return book
