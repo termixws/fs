@@ -24,6 +24,9 @@ def get_products():
     return products
 
 @app.get("/products/search")
-def product_serch(min_price : float, max_prixe : float):
-    result = [p for p in products if min_price <= p.price <= max_prixe]
+def product_serch(min_price : float, max_price : float):
+    result = []
+    for product in products:
+        if min_price <= product.price <= max_price:
+            result.append(product)
     return result
