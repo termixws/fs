@@ -21,8 +21,12 @@ def add_book(book: Book):
     books.append(book)
     return book
 
-@app.get("/books")
-def get_books(author: str = None):  # <-- просто значение по умолчанию
+def get_books(author: str = None):
     if author:
-        return [b for b in books if b.author == author]
-    return books
+        result = []
+        for book in books:
+            if book.author == author:
+                result.append(book)
+        return result
+    else:
+        return books
