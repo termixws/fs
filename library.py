@@ -4,6 +4,8 @@ from pydantic import BaseModel
 
 app = FastAPI()
 books = []
+sort_books_by_author = []
+books_ids = []
 
 
 class Book(BaseModel):
@@ -15,18 +17,23 @@ class Book(BaseModel):
 
 @app.post("/books")
 def add_book(book: Book):
-    for book in books:
-        if book.id == book.id:
-            return {"error" : "this book already exists"}
-    books.append(book)
-    return book
+    if book.id not in books_ids:
+        books_ids.append(book.id)
+        books.append(book)
+        return "book added"
+    else:
+        return "this book already added"
 
+@app.get("/books")
 def get_books(author: str = None):
     if author:
-        result = []
+        sort_books_by_author.clear()
         for book in books:
             if book.author == author:
-                result.append(book)
-        return result
-    else:
-        return books
+                sort_books_by_author.append(book)
+        if sort_books_by_author:
+            return sort_books_by_author
+        else:
+            return "error"
+        
+    return books
