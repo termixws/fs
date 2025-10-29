@@ -87,7 +87,7 @@ def get_db():
 
 # ---- ЭНДПОИНТЫ ----
 
-@app.post("/users/")
+@app.post("/users/", tags=["Authentication"])
 def create_user(name: str, db: Session = Depends(get_db)):
     user = User(name=name)
     db.add(user)
@@ -95,7 +95,8 @@ def create_user(name: str, db: Session = Depends(get_db)):
     db.refresh(user)
     return user
 
-@app.post("/tags/")
+# Tags endpoints
+@app.post("/tags/", tags=["Tags"])
 def create_tag(name: str, db: Session = Depends(get_db)):
     existing_tag = db.exec(select(Tag).where(Tag.name == name)).first()
     if existing_tag:
@@ -107,12 +108,20 @@ def create_tag(name: str, db: Session = Depends(get_db)):
     db.refresh(tag)
     return tag
 
-@app.get("/tags/")
+@app.get("/tags/", tags=["Tags"])
 def get_all_tags(db: Session = Depends(get_db)):
     tags = db.exec(select(Tag)).all()
     return tags
 
-@app.post("/posts/")
+@app.get("/tags/{tag_id}/posts/", tags=["Tags"])
+def get_posts_by_tag(tag_id: int, db: Session = Depends(get_db)):
+    tag = db.get(Tag, tag_id)
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return tag.posts
+
+# Posts endpoints
+@app.post("/posts/", tags=["Posts"])
 def create_post(title: str, content: str, user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
@@ -124,8 +133,8 @@ def create_post(title: str, content: str, user_id: int, db: Session = Depends(ge
     db.refresh(post)
     return post
 
-@app.post("/posts/{post_id}/tags/")
-def add_tags_to_post(post_id: int, tag_ids: list[int], db: Session = Depends(get_db)):
+@app.post("/posts/{post_id}/tags/", tags=["Posts"])
+def add_tags_to_post(post_id: int, tag_ids: List[int], db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -142,28 +151,15 @@ def add_tags_to_post(post_id: int, tag_ids: list[int], db: Session = Depends(get
     db.refresh(post)
     return post
 
-@app.get("/posts/{post_id}/tags/")
+@app.get("/posts/{post_id}/tags/", tags=["Posts"])
 def get_post_tags(post_id: int, db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post.tags
 
-@app.get("/tags/{tag_id}/posts/")
-def get_posts_by_tag(tag_id: int, db: Session = Depends(get_db)):
-    tag = db.get(Tag, tag_id)
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found")
-    return tag.posts
-
-@app.get("/users/{user_id}/posts/")
-def get_user_posts(user_id: int, db: Session = Depends(get_db)):
-    user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return {"user": user.name, "posts": [p.title for p in user.posts]}
-
-@app.post("/comments")
+# Comments endpoints
+@app.post("/comments/", tags=["Comments"])
 def create_comment(content: str, post_id: int, db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
@@ -174,26 +170,15 @@ def create_comment(content: str, post_id: int, db: Session = Depends(get_db)):
     db.refresh(comment)
     return comment
 
-@app.get("/posts/{post_id}/comments/")
+@app.get("/posts/{post_id}/comments/", tags=["Comments"])
 def get_comments(post_id: int, db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post.comments
 
-@app.get("/users/posts/count/")
-def get_users_post_count(db: Session = Depends(get_db)):
-    users = db.exec(select(User)).all()
-    result = []
-    for user in users:
-        post_count = len(user.posts)
-        result.append({
-            "user": user.name,
-            "post_count": post_count
-        })
-    return result
-
-@app.post("/posts/{post_id}/like")
+# Likes endpoints
+@app.post("/posts/{post_id}/like/", tags=["Likes"])
 def like(post_id: int, user_id: int, db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
@@ -215,7 +200,7 @@ def like(post_id: int, user_id: int, db: Session = Depends(get_db)):
     db.refresh(new_like)
     return {"message": "Post liked successfully"}
 
-@app.get("/posts/{post_id}/likes")
+@app.get("/posts/{post_id}/likes/", tags=["Likes"])
 def likes_users(post_id: int, db: Session = Depends(get_db)):
     post = db.get(Post, post_id)
     if not post:
@@ -230,7 +215,8 @@ def likes_users(post_id: int, db: Session = Depends(get_db)):
         "users": users_who_liked
     }
 
-@app.post("/users/{user_id}/follow/{target_id}")
+# Follow/Subscription endpoints
+@app.post("/users/{user_id}/follow/{target_id}/", tags=["Social"])
 def follow(user_id: int, target_id: int, db: Session = Depends(get_db)):
     if user_id == target_id:
         raise HTTPException(status_code=400, detail="Cannot follow yourself")
@@ -248,7 +234,7 @@ def follow(user_id: int, target_id: int, db: Session = Depends(get_db)):
     
     return {"message": f"User {user_id} now follows user {target_id}"}
 
-@app.get("/users/{user_id}/followers")
+@app.get("/users/{user_id}/followers/", tags=["Social"])
 def get_followers(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
@@ -256,7 +242,7 @@ def get_followers(user_id: int, db: Session = Depends(get_db)):
     followers = [subscription.follower for subscription in user.followers]
     return [{"id": follower.id, "name": follower.name} for follower in followers]
 
-@app.get("/users/{user_id}/following")
+@app.get("/users/{user_id}/following/", tags=["Social"])
 def get_following(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
@@ -264,28 +250,52 @@ def get_following(user_id: int, db: Session = Depends(get_db)):
     following = [subscription.followed for subscription in user.following]
     return [{"id": followed.id, "name": followed.name} for followed in following]
 
-@app.get("/feed/{user_id}")
-def get_feed(user_id : int, db : Session = Depends(get_db)):
+# User-related endpoints
+@app.get("/users/{user_id}/posts/", tags=["Users"])
+def get_user_posts(user_id: int, db: Session = Depends(get_db)):
     user = db.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    following_user = db.exec(select(Subscription).where(Subscription.follower_id == user_id)).all()
-    followed_ids = []
-    for s in following_user:
-        followed_ids.append(s.followed_id)
-    if not followed_ids:
-        return{
-            "user" : user.name,
-            "feed" : []
-        }
-    posts = db.exec(select(Post, User.name).join(User, Post.user_id == User.id).where(Post.user_id.in_((followed_ids)))).all()
-    feed_item = []
-    for post, author_name in posts:
-        feed_item.append({
-            "author": author_name,
-            "title": post.title
+    return {"user": user.name, "posts": [p.title for p in user.posts]}
+
+@app.get("/users/posts/count/", tags=["Users"])
+def get_users_post_count(db: Session = Depends(get_db)):
+    users = db.exec(select(User)).all()
+    result = []
+    for user in users:
+        post_count = len(user.posts)
+        result.append({
+            "user": user.name,
+            "post_count": post_count
         })
-    return{
-        "user" : user.name,
-        "feed" : feed_item
+    return result
+
+# Feed endpoint
+@app.get("/feed/{user_id}/", tags=["Feed"])
+def get_feed(user_id: int, db: Session = Depends(get_db)):
+    user = db.get(User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    following_users = db.exec(select(Subscription).where(Subscription.follower_id == user_id)).all()
+    followed_ids = [s.followed_id for s in following_users]
+    
+    if not followed_ids:
+        return {
+            "user": user.name,
+            "feed": []
+        }
+    
+    posts = db.exec(select(Post, User.name).join(User, Post.user_id == User.id).where(Post.user_id.in_(followed_ids))).all()
+    feed_items = []
+    for post, author_name in posts:
+        feed_items.append({
+            "author": author_name,
+            "title": post.title,
+            "content": post.content
+        })
+    
+    return {
+        "user": user.name,
+        "feed": feed_items
     }
