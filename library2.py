@@ -68,7 +68,10 @@ def update_book(book_id: int, book_update: BookUpdate, session: Session = Depend
         db_book.published_year = book_update.published_year
     
     session.commit()
-    return db_book
+    return {
+        "message": "Task updated successfully",
+        "book": db_book
+    }
 
 @app.delete("/books/{book_id}")
 def delete_book(book_id: int, session: Session = Depends(get_session)):
